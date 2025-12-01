@@ -1,0 +1,25 @@
+{
+  "name": "ai-image-generator-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for AI Image Generation - Replaces Python Streamlit app",
+  "main": "worker.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev"
+  },
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "ai",
+    "image-generation",
+    "streamlit",
+    "python"
+  ],
+  "author": "AI Image Generator",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "wrangler": "^3.25.0"
+  }
+}
