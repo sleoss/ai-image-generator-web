@@ -1,25 +1,25 @@
 {
-  "name": "ai-image-generator-worker",
-  "version": "1.0.0",
-  "description": "Cloudflare Worker for AI Image Generation - Replaces Python Streamlit app",
-  "main": "worker.js",
+  "name": "ai-image-generator-pages",
+  "version": "2.0.0",
+  "description": "Cloudflare Pages Functions for AI Image Generation - Modern architecture",
+  "main": "aioec.html",
   "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "start": "wrangler dev"
+    "deploy": "wrangler pages deploy .",
+    "dev": "wrangler pages dev . --port=8080",
+    "start": "wrangler pages dev . --port=8080"
   },
   "keywords": [
     "cloudflare",
-    "worker",
+    "pages",
+    "functions",
     "ai",
     "image-generation",
-    "streamlit",
-    "python"
+    "serverless"
   ],
   "author": "AI Image Generator",
   "license": "MIT",
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240208.0",
-    "wrangler": "^3.25.0"
+    "@cloudflare/workers-types": "^4.20240605.0",
+    "wrangler": "^3.57.0"
   }
 }

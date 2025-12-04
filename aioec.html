@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShowImageWeb - AI图像生成器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* 页面导航按钮 */
+        .page-nav {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 10000;
+        }
+
+        .page-nav-btn {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .page-nav-btn:hover {
+            background: rgba(102, 126, 234, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .page-nav-btn::before {
+            content: "🔗";
+        }
+
+        /* 页面样式变量 */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #13B497 0%, #59D4A8 100%);
+            --warning-gradient: linear-gradient(135deg, #FFA500 0%, #FF6347 100%);
+            --glass-bg: rgba(255, 255, 255, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+            --shadow-xl: 0 20px 40px rgba(0,0,0,0.15);
+            --border-radius-sm: 12px;
+            --border-radius-md: 16px;
+            --border-radius-lg: 24px;
+            --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            position: relative;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+            z-index: -1;
+            animation: floatGradient 20s ease infinite;
+        }
+
+        @keyframes floatGradient {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(-20px, -20px) rotate(1deg); }
+            66% { transform: translate(20px, -10px) rotate(-1deg); }
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f23 100%);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+            padding: 2rem 1.5rem;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header h1 {
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            font-size: 2.5rem !important;
+            font-weight: 800 !important;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+            animation: glow 3s ease-in-out infinite alternate;
+            margin-bottom: 2rem !important;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.3)); }
+            to { filter: drop-shadow(0 0 30px rgba(240, 147, 251, 0.5)); }
+        }
+
+        .sidebar h4 {
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            margin-bottom: 1rem !important;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem !important;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            color: #e5e7eb !important;
+            font-weight: 400 !important;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 2px solid rgba(102, 126, 234, 0.3) !important;
+            border-radius: var(--border-radius-sm) !important;
+            color: #ffffff !important;
+            backdrop-filter: blur(10px);
+            transition: var(--transition-normal) !important;
+            font-size: 1rem !important;
+        }
+
+        .input-group input:focus {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border-color: rgba(102, 126, 234, 0.8) !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
+            outline: none !important;
+        }
+
+        .switch-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .switch-label input {
+            width: auto;
+            margin-right: 0.5rem;
+        }
+
+        .switch-text {
+            color: #e5e7eb !important;
+            font-weight: 400 !important;
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.3), rgba(102, 126, 234, 0.1), transparent);
+            margin: 1rem 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.15) !important;
+            backdrop-filter: blur(15px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: var(--border-radius-md) !important;
+            padding: 1.5rem !important;
+            text-align: center;
+            transition: var(--transition-normal) !important;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: var(--border-radius-sm) !important;
+            color: white !important;
+            font-weight: 600 !important;
+            cursor: pointer;
+            transition: var(--transition-normal) !important;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            text-align: center;
+        }
+
+        .footer-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #667eea, transparent);
+            border-radius: 5px;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .sidebar-footer p {
+            color: #e5e7eb;
+            font-size: 0.8rem;
+            margin: 0;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            margin-left: 10px;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        .main-header h1 {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+            font-size: 4rem !important;
+            font-weight: 900 !important;
+            background: linear-gradient(135deg, #ffffff, #f0f0f0, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 50px rgba(255,255,255,0.3);
+            margin-bottom: 1rem !important;
+            animation: titleFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes titleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .main-header p {
+            font-size: 1.3rem !important;
+            color: rgba(255,255,255,0.9) !important;
+            font-weight: 400 !important;
+            margin: 0 !important;
+        }
+
+        .input-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-grid {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .prompt-container {
+            flex: 1;
+        }
+
+        .prompt-container textarea {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 2px solid rgba(102, 126, 234, 0.3) !important;
+            border-radius: var(--border-radius-md) !important;
+            color: #ffffff !important;
+            backdrop-filter: blur(10px);
+            transition: var(--transition-normal) !important;
+            font-size: 1rem !important;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        .prompt-container textarea:focus {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border-color: rgba(102, 126, 234, 0.8) !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
+            outline: none !important;
+        }
+
+        .button-container {
+            margin-top: 3rem;
+            align-items: flex-end;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: var(--border-radius-sm) !important;
+            font-weight: 700 !important;
+            font-size: 1.1rem !important;
+            padding: 1rem 2rem !important;
+            transition: var(--transition-normal) !important;
+            box-shadow: var(--shadow-md) !important;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.02) !important;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3) !important;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: var(--shadow-md) !important;
+        }
+
+        .inspiration-section {
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        .inspiration-section h4 {
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 0.8rem;
+        }
+
+        .inspiration-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+        }
+
+        .inspiration-btn {
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(102, 126, 234, 0.3) !important;
+            border-radius: var(--border-radius-sm) !important;
+            color: white !important;
+            cursor: pointer;
+            transition: var(--transition-normal) !important;
+            font-size: 0.8rem;
+        }
+
+        .inspiration-btn:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+            transform: translateY(-2px);
+        }
+
+        .gallery-section {
+            margin-top: 3rem;
+        }
+
+        .gallery-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .gallery-header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .gallery-divider {
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #667eea);
+            background-size: 300% 100%;
+            animation: gradientShift 3s ease infinite;
+            border-radius: 5px;
+            margin: 0 auto;
+            width: 200px;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .empty-gallery {
+            text-align: center;
+            padding: 4rem 2rem;
+            margin: 2rem 0;
+        }
+
+        .empty-content {
+            color: #667eea;
+        }
+
+        .empty-icon {
+            font-size: 5rem;
+            margin-bottom: 2rem;
+        }
+
+        .empty-content h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-content p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .empty-features {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .feature-tag {
+            background: rgba(102, 126, 234, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .gallery-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .gallery-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--border-radius-md);
+            overflow: hidden;
+            transition: var(--transition-normal);
+            position: relative;
+            box-shadow: var(--shadow-md);
+            aspect-ratio: 1/1;
+        }
+
+        .gallery-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .gallery-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: var(--transition-slow);
+            background: rgba(0,0,0,0.1);
+            border-radius: var(--border-radius-md);
+        }
+
+        .gallery-card:hover img {
+            transform: scale(1.05);
+        }
+
+        .image-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            color: white;
+            padding: 1rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: var(--transition-normal);
+        }
+
+        .gallery-card:hover .image-info {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .download-btn {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            background: var(--success-gradient) !important;
+            border-radius: var(--border-radius-sm) !important;
+            font-weight: 600 !important;
+            transition: var(--transition-normal) !important;
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 20px rgba(19, 180, 151, 0.3) !important;
+        }
+
+        .gallery-stats {
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        .gallery-stats h4 {
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .footer-content p {
+            margin-bottom: 1rem;
+        }
+
+        .highlight {
+            color: #667eea;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 1200px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .input-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .button-container {
+                padding-top: 0;
+            }
+
+            .inspiration-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-header h1 {
+                font-size: 2.5rem !important;
+            }
+
+            .input-section {
+                padding: 1.5rem;
+            }
+
+            .gallery-container {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .inspiration-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar {
+                padding: 1rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .gallery-card:hover img {
+                transform: scale(1.02);
+            }
+
+            .gallery-card {
+                margin-bottom: 0.75rem;
+            }
+
+            .inspiration-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 页面导航 -->
+    <div class="page-nav">
+        <a href="/index.html" class="page-nav-btn">切换到主页</a>
+    </div>
+
+    <div class="app-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <h1>控制台</h1>
+                </div>
+
+                <div class="api-config">
+                    <h4>🔑 API 配置</h4>
+                    <div class="input-group">
+                        <label for="apiEndpoint">🌐 API Endpoint</label>
+                        <input type="text" id="apiEndpoint" value="https://z-api.aioec.tech/proxy/generate" placeholder="API接口地址">
+                    </div>
+                    <div class="input-group">
+                        <label for="apiKey">🔐 API Key</label>
+                        <input type="password" id="apiKey" placeholder="sk-...">
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="generation-params">
+                    <h4>⚙️ 生成参数</h4>
+                    <div class="input-group">
+                        <label for="seedInput">🎲 随机种子</label>
+                        <input type="number" id="seedInput" value="42" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label class="switch-label">
+                            <input type="checkbox" id="useRandom" checked>
+                            <span class="switch-text">🎯 随机种子模式</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="ui-settings">
+                    <h4>🎨 界面设置</h4>
+                    <div class="input-group">
+                        <label for="galleryCols">📐 画廊列数</label>
+                        <input type="range" id="galleryCols" min="1" max="4" value="2">
+                        <span id="galleryColsValue">2</span>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="stats">
+                    <h4>📊 统计信息</h4>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="generatedCount">0</div>
+                            <div class="stat-label">🖼️ 已生成</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="avgDuration">0s</div>
+                            <div class="stat-label">⚡ 平均耗时</div>
+                        </div>
+                    </div>
+
+                    <button id="clearHistory" class="btn-secondary">🗑️ 清空历史记录</button>
+                </div>
+
+                <div class="sidebar-footer">
+                    <div class="footer-divider"></div>
+                    <p>✨ Powered by AI</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <div class="main-header floating">
+                <h1>ShowImageWeb</h1>
+                <p>🎨 AI图像生成 - 将您的想象力转化为视觉艺术</p>
+            </div>
+
+            <div class="input-section">
+                <div class="input-grid">
+                    <div class="prompt-container">
+                        <textarea
+                            id="promptInput"
+                            placeholder="🎯 描述您的创意... 例如：一座漂浮在云端的未来城市，玻璃建筑反射着阳光，8K超高清"
+                            rows="6"
+                        ></textarea>
+                    </div>
+
+                    <div class="button-container">
+                        <button id="generateBtn" class="btn-primary">
+                            <span class="btn-text">✨ 立即生成</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div id="inspirationSection" class="inspiration-section">
+                    <h4>💡 灵感示例</h4>
+                    <div class="inspiration-grid">
+                        <button class="inspiration-btn" data-prompt="一座宏伟的童话城堡坐落在云朵之上，高耸的塔楼闪烁着金色的光芒">🏰 童话城堡</button>
+                        <button class="inspiration-btn" data-prompt="春日樱花盛开的日式庭院，粉色花瓣飘落在青石板上">🌸 樱花庭院</button>
+                        <button class="inspiration-btn" data-prompt="未来主义科幻太空站，巨大的环形结构悬浮在星空之中">🚀 科幻太空站</button>
+                        <button class="inspiration-btn" data-prompt="古老的巨龙守护着神秘的森林入口，鳞片在月光下闪闪发亮">🐉 巨龙守护者</button>
+                        <button class="inspiration-btn" data-prompt="赛博朋克风格的未来都市，霓虹灯闪烁的摩天大楼">🌆 赛博都市</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gallery-section">
+                <div class="gallery-header">
+                    <h2>🎨 AI 作品画廊</h2>
+                    <div class="gallery-divider"></div>
+                </div>
+
+                <div id="emptyGallery" class="empty-gallery">
+                    <div class="empty-content">
+                        <div class="empty-icon">🎨</div>
+                        <h3>开始您的创作之旅</h3>
+                        <p>还没有生成的图像，<br>在上方描述您的创意，让AI为您创作独特的艺术作品吧！</p>
+                        <div class="empty-features">
+                            <span class="feature-tag">✨ 高质量生成</span>
+                            <span class="feature-tag">🚀 秒级出图</span>
+                            <span class="feature-tag">💾 一键下载</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="galleryContainer" class="gallery-container"></div>
+
+                <div id="galleryStats" class="gallery-stats">
+                    <h4>📊 创作统计</h4>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalImages">0</div>
+                            <div class="stat-label">🖼️ 作品总数</div>
+                        </div>
+                        <div class="stat-value" id="totalAvgDuration">0s</div>
+                        <div class="stat-value" id="totalDuration">0s</div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="footer">
+                <div class="footer-content">
+                    <p>
+                        <span>🚀 <strong>极速生成</strong> - 秒级出图</span>
+                        <span>🎨 <strong>高品质</strong> - 专业AI算法</span>
+                        <span>💾 <strong>无限存储</strong> - 永久保存</span>
+                    </p>
+                    <p>Powered by Advanced AI Technology | <span class="highlight">ShowImageWeb</span> © 2025</p>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">🚀 AI 正在处理您的请求...</div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let history = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+        let isGenerating = false;
+        let savedPrompt = '';
+
+        // DOM Elements
+        const elements = {
+            promptInput: document.getElementById('promptInput'),
+            generateBtn: document.getElementById('generateBtn'),
+            apiKey: document.getElementById('apiKey'),
+            apiEndpoint: document.getElementById('apiEndpoint'),
+            seedInput: document.getElementById('seedInput'),
+            useRandom: document.getElementById('useRandom'),
+            galleryCols: document.getElementById('galleryCols'),
+            galleryColsValue: document.getElementById('galleryColsValue'),
+            clearHistory: document.getElementById('clearHistory'),
+            galleryContainer: document.getElementById('galleryContainer'),
+            emptyGallery: document.getElementById('emptyGallery'),
+            loadingOverlay: document.getElementById('loadingOverlay'),
+            generatedCount: document.getElementById('generatedCount'),
+            avgDuration: document.getElementById('avgDuration'),
+            totalImages: document.getElementById('totalImages'),
+            totalAvgDuration: document.getElementById('totalAvgDuration'),
+            totalDuration: document.getElementById('totalDuration'),
+            inspirationSection: document.getElementById('inspirationSection'),
+            inspirationBtns: document.querySelectorAll('.inspiration-btn')
+        };
+
+        // Initialize the application
+        function init() {
+            setupEventListeners();
+            updateGallery();
+            updateStats();
+
+            // Load saved prompt if available
+            if (savedPrompt) {
+                elements.promptInput.value = savedPrompt;
+            }
+
+            // Update gallery columns display
+            elements.galleryColsValue.textContent = elements.galleryCols.value;
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            elements.generateBtn.addEventListener('click', handleGenerate);
+            elements.clearHistory.addEventListener('click', clearHistory);
+            elements.galleryCols.addEventListener('input', (e) => {
+                elements.galleryColsValue.textContent = e.target.value;
+                updateGallery();
+            });
+
+            // Inspiration buttons
+            elements.inspirationBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const prompt = e.target.getAttribute('data-prompt');
+                    elements.promptInput.value = prompt;
+                    savedPrompt = prompt;
+                });
+            });
+
+            // Auto-save prompt
+            elements.promptInput.addEventListener('input', (e) => {
+                if (!isGenerating) {
+                    savedPrompt = e.target.value;
+                }
+            });
+        }
+
+        // Handle image generation
+        async function handleGenerate() {
+            const prompt = elements.promptInput.value.trim();
+            const apiKey = elements.apiKey.value.trim();
+
+            if (!apiKey) {
+                showNotification('请先在左侧侧边栏配置 API Key', 'error');
+                return;
+            }
+
+            if (!prompt) {
+                showNotification('请输入提示词', 'error');
+                return;
+            }
+
+            isGenerating = true;
+            updateButtonState();
+
+            try {
+                showLoading();
+
+                const seed = elements.useRandom.checked
+                    ? Math.floor(Math.random() * 1000000000)
+                    : parseInt(elements.seedInput.value);
+
+                const startTime = Date.now();
+
+                // Update loading text
+                document.querySelector('.loading-text').textContent = '🚀 AI 正在处理您的请求...';
+
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({ prompt, seed })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'API请求失败');
+                }
+
+                const data = await response.json();
+
+                if (!data.base64) {
+                    throw new Error('服务器返回成功但缺少图片数据');
+                }
+
+                const duration = (Date.now() - startTime) / 1000;
+
+                // Add to history
+                addToHistory(prompt, data.base64, seed, duration);
+
+                // Update UI
+                updateGallery();
+                updateStats();
+
+                showNotification('作品创作完成!', 'success');
+
+                // Hide loading
+                hideLoading();
+
+                // Reset input
+                elements.promptInput.value = '';
+                savedPrompt = '';
+
+            } catch (error) {
+                console.error('Generation error:', error);
+                showNotification(error.message, 'error');
+                hideLoading();
+            } finally {
+                isGenerating = false;
+                updateButtonState();
+            }
+        }
+
+        // Add image to history
+        function addToHistory(prompt, base64Image, seed, duration) {
+            const timestamp = new Date().toLocaleTimeString();
+            const id = Date.now().toString();
+
+            const newItem = {
+                id,
+                prompt,
+                base64Image,
+                seed,
+                time: timestamp,
+                duration: duration.toFixed(2) + 's'
+            };
+
+            history.unshift(newItem);
+            localStorage.setItem('imageHistory', JSON.stringify(history));
+        }
+
+        // Update gallery display
+        function updateGallery() {
+            if (history.length === 0) {
+                elements.emptyGallery.style.display = 'block';
+                elements.galleryContainer.innerHTML = '';
+                return;
+            }
+
+            elements.emptyGallery.style.display = 'none';
+
+            const cols = parseInt(elements.galleryCols.value);
+            elements.galleryContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+            elements.galleryContainer.innerHTML = history.map(item => `
+                <div class="gallery-card">
+                    <img src="data:image/png;base64,${item.base64Image}" alt="AI Generated Image" loading="lazy">
+                    <div class="image-info">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.9rem;">⏱️ ${item.duration}</span>
+                            <span style="font-size: 0.9rem;">🌱 ${item.seed}</span>
+                        </div>
+                        <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8;">
+                            ${item.time}
+                        </div>
+                    </div>
+                </div>
+                <button class="download-btn" onclick="downloadImage('${item.base64Image}', '${item.id}')">
+                    💾 下载作品 #${item.id.slice(-6)}
+                </button>
+            `).join('');
+        }
+
+        // Update statistics
+        function updateStats() {
+            const count = history.length;
+            elements.generatedCount.textContent = count;
+            elements.totalImages.textContent = count;
+
+            if (count > 0) {
+                const recent = history.slice(0, 5);
+                const avgDuration = recent.reduce((sum, item) => sum + parseFloat(item.duration), 0) / recent.length;
+                elements.avgDuration.textContent = `${avgDuration.toFixed(1)}s`;
+
+                const totalDuration = history.reduce((sum, item) => sum + parseFloat(item.duration), 0);
+                elements.totalAvgDuration.textContent = `${(totalDuration / count).toFixed(1)}s`;
+                elements.totalDuration.textContent = `${Math.round(totalDuration)}s`;
+            } else {
+                elements.avgDuration.textContent = '0s';
+                elements.totalAvgDuration.textContent = '0s';
+                elements.totalDuration.textContent = '0s';
+            }
+        }
+
+        // Clear history
+        function clearHistory() {
+            if (confirm('确定要清空所有历史记录吗？')) {
+                history = [];
+                localStorage.removeItem('imageHistory');
+                updateGallery();
+                updateStats();
+                showNotification('历史记录已清空', 'info');
+            }
+        }
+
+        // Show loading overlay
+        function showLoading() {
+            elements.loadingOverlay.classList.remove('hidden');
+        }
+
+        // Hide loading overlay
+        function hideLoading() {
+            elements.loadingOverlay.classList.add('hidden');
+        }
+
+        // Update button state
+        function updateButtonState() {
+            elements.generateBtn.disabled = isGenerating;
+            elements.promptInput.disabled = isGenerating;
+
+            const btnText = isGenerating ? '⏳ 生成中...' : '✨ 立即生成';
+            elements.generateBtn.querySelector('.btn-text').textContent = btnText;
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+
+            // Style the notification
+            Object.assign(notification.style, {
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                padding: '1rem 1.5rem',
+                borderRadius: '8px',
+                color: 'white',
+                zIndex: '1001',
+                maxWidth: '300px',
+                wordWrap: 'break-word'
+            });
+
+            // Set background based on type
+            switch(type) {
+                case 'success':
+                    notification.style.background = 'linear-gradient(135deg, #13B497, #59D4A8)';
+                    break;
+                case 'error':
+                    notification.style.background = 'linear-gradient(135deg, #FF6B6B, #FFE66D)';
+                    break;
+                default:
+                    notification.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+            }
+
+            document.body.appendChild(notification);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Download image function
+        function downloadImage(base64Data, id) {
+            const link = document.createElement('a');
+            link.download = `AI-Art-${id}.png`;
+            link.href = `data:image/png;base64,${base64Data}`;
+            link.click();
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+name = "ai-image-generator-pages"
+compatibility_date = "2025-12-04"
+
+[env.production]
+account_id = "your-account-id"
+
+[env.staging]
+account_id = "your-account-id"
+
+# Environment variables for Pages Functions
+[vars]
+API_BASE_URL = "https://z-api.aioec.tech/proxy/generate"
+
+# Build configuration for Cloudflare Pages
+[build]
+command = "echo 'No build needed - static files with Functions'"
+
+# Directory configuration
+[build.environment]
+NODE_VERSION = "18"
+
+# Pages Functions directory
+functions_directory = "functions"
+
+# Asset directory
+asset_directory = "."
+
+# 页面路由配置
+# 确保所有页面都能正确路由
+[[pages]]
+directory = "."
+hook = "pages_serve"
+
+# API Functions 路由配置
+# 函数目录中的文件会自动映射到对应的路由
+# /functions/api/generate.js -> /api/generate
+# /functions/api/config.js -> /api/config
+
+# Cloudflare Pages Functions 配置
+[pages_functions]
+# 启用 Functions 支持
+enabled = true
+
+# 路由规则
+# 静态文件优先，API 路由由 Functions 处理
